@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: rag-staging
+
+patches:
+  - path: backend-staging.yaml
+    target:
+      kind: Deployment
+      name: backend
+  - path: frontend-staging.yaml
+    target:
+      kind: Deployment
+      name: frontend

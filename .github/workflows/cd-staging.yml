@@ -1,0 +1,32 @@
+# CD - Deploy to staging (requires PR approval)
+name: cd-staging
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Build and push backend image
+        run: |
+          docker build -f backend/Dockerfile -t ${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }} ./backend
+          docker push ${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }}
+      - name: Build and push frontend image
+        run: |
+          docker build -f frontend/Dockerfile -t ${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }} ./frontend
+          docker push ${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }}
+      - name: Deploy to staging namespace
+        run: |
+          kubectl set image deployment/backend backend=${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }} -n rag-staging
+          kubectl set image deployment/frontend frontend=${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }} -n rag-staging

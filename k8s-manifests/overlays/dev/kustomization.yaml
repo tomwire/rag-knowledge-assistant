@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: rag-dev
+
+patches:
+  - path: backend-dev.yaml
+    target:
+      kind: Deployment
+      name: backend

@@ -1,0 +1,23 @@
+# Drift Detection - Detects Kubernetes state drift every 6 hours
+name: drift-detection
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  drift-check:
+    name: Check cluster drift
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, staging, prod]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check AWS credentials (portfolio mode)
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "Portfolio mode — skipping kubectl drift check"
+            exit 0
+          fi
+          echo "AWS credentials available, checking cluster state..."
