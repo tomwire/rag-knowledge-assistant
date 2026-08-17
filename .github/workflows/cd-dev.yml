@@ -9,24 +9,37 @@ jobs:
   deploy-dev:
     name: Deploy to Dev
     runs-on: ubuntu-latest
-    environment: dev
+    env:
+      HAS_REGISTRY_CREDENTIALS: ${{ secrets.REGISTRY_PASSWORD != '' && vars.REGISTRY != '' }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Skip if no registry configured (portfolio mode)
+        if: env.HAS_REGISTRY_CREDENTIALS == 'false'
+        run: echo "Portfolio mode — skipping container registry login. Push REGISTRY and REGISTRY_* secrets to enable deployment."
+
       - name: Login to container registry
+        if: env.HAS_REGISTRY_CREDENTIALS == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.REGISTRY }}
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
+
       - name: Build and push backend image
+        if: env.HAS_REGISTRY_CREDENTIALS == 'true'
         run: |
-          docker build -f backend/Dockerfile -t ${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }} ./backend
-          docker push ${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }}
+          docker build -f backend/Dockerfile -t "${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }}" ./backend
+          docker push "${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }}"
+
       - name: Build and push frontend image
+        if: env.HAS_REGISTRY_CREDENTIALS == 'true'
         run: |
-          docker build -f frontend/Dockerfile -t ${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }} ./frontend
-          docker push ${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }}
+          docker build -f frontend/Dockerfile -t "${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }}" ./frontend
+          docker push "${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }}"
+
       - name: Deploy to dev namespace
+        if: env.HAS_REGISTRY_CREDENTIALS == 'true'
         run: |
-          kubectl set image deployment/backend backend=${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }} -n rag-dev
-          kubectl set image deployment/frontend frontend=${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }} -n rag-dev
+          kubectl set image deployment/backend backend="${{ vars.REGISTRY }}/rag-knowledge-assistant/backend:${{ github.sha }}" -n rag-dev
+          kubectl set image deployment/frontend frontend="${{ vars.REGISTRY }}/rag-knowledge-assistant/frontend:${{ github.sha }}" -n rag-dev
