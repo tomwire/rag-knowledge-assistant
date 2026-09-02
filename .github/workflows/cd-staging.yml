@@ -9,6 +9,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
     environment: staging
     env:
       HAS_REGISTRY_CREDENTIALS: ${{ secrets.REGISTRY_PASSWORD != '' && vars.REGISTRY != '' }}
